@@ -91,7 +91,9 @@ public class DoublyLinkedList<T> : IEnumerable<T>
         var newNode = new DoublyLinkedListNode<T>(value);
         newNode.List = this;
 
+        newNode.Previous = node;
         newNode.Next = node.Next;
+        node.Next.Previous = newNode;
         node.Next = newNode;
 
         Count++;
@@ -104,16 +106,20 @@ public class DoublyLinkedList<T> : IEnumerable<T>
         {
             return AddFirst(value);
         }
-        var previous = head;
-        while (previous.Next != node)
-        {
-            previous = previous.Next;
-        }
+        // var previous = head;
+        // while (previous.Next != node)
+        // {
+        //     previous = previous.Next;
+        // }
         var newNode = new DoublyLinkedListNode<T>(value);
         newNode.List = this;
 
+        newNode.Previous = node.Previous;
+        node.Previous.Next = newNode;
         newNode.Next = node;
-        previous.Next = newNode;
+        node.Previous = newNode;
+
+        // previous.Next = newNode;
 
         Count++;
         return newNode;
@@ -149,27 +155,25 @@ public class DoublyLinkedList<T> : IEnumerable<T>
     {
         ValidateNode(node);
 
-        DoublyLinkedListNode<T> previous = null;
-        DoublyLinkedListNode<T> current = head;
-
-        while (current != node)
-        {
-            previous = current;
-            current = current.Next;
-        }
-        if (previous == null)
+        if (node.Previous == null)
         {
             head = node.Next;
         }
         else
         {
-            previous.Next = node.Next;
+            node.Previous.Next = node.Next;
         }
-        if (node == tail)
+        if (node.Next == null)
         {
-            tail = previous;
+            tail = node.Previous;
         }
+        else
+        {
+            node.Next.Previous = node.Previous;
+        }
+
         node.Next = null;
+        node.Previous = null;
         node.List = null;
         Count--;
     }
