@@ -195,6 +195,17 @@ public class DoublyLinkedList<T> : IEnumerable<T>
     {
         return Find(value) != null;
     }
+
+    public IEnumerable<T> Backward()
+    {
+        var current = tail;
+        while (current != null)
+        {
+            yield return current.Value;
+            current = current.Previous;
+        }
+        
+    }
     public void Clear()
     {
         var current = head;
@@ -202,6 +213,7 @@ public class DoublyLinkedList<T> : IEnumerable<T>
         {
             var next = current.Next;
             current.Next = null;
+            current.Previous = null;
             current.List = null;
             current = next;
         }
