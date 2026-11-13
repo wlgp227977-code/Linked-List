@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using Unity.VisualScripting;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
@@ -239,18 +241,57 @@ public class BinarySearchTree<TKey, TValue> : IDictionary<TKey, TValue>
     // 중위 순회 (InOrder) — Left → Root → Right
     public virtual IEnumerable<KeyValuePair<TKey, TValue>> InOrderTraversal()
     {
-        if (root == null) yield break;
+        List<KeyValuePair<TKey, TValue>> list = new List<KeyValuePair<TKey, TValue>>();
+        Visit(root);
+        return list;
+
+        void Visit(TreeNode<TKey, TValue> node)
+        {
+            if (node == null)
+            {
+                return;
+            }
+            Visit(node.Left);
+            list.Add(new KeyValuePair<TKey, TValue>(node.Key, node.Value));
+            Visit(node.Right);
+        }
 
     }
     // 전위 순회 (PreOrder) — Root → Left → Right
     public virtual IEnumerable<KeyValuePair<TKey, TValue>> PreOrderTraversal()
     {
-        if (root == null) yield break;
+        List<KeyValuePair<TKey, TValue>> list = new List<KeyValuePair<TKey, TValue>>();
+        Visit(root);
+        return list;
+
+        void Visit(TreeNode<TKey, TValue> node)
+        {
+            if (node == null)
+            {
+                return;
+            }
+            list.Add(new KeyValuePair<TKey, TValue>(node.Key, node.Value));
+            Visit(node.Left);
+            Visit(node.Right);
+        }
     }
     // 후위 순회 (PostOrder) — Left → Right → Root
     public virtual IEnumerable<KeyValuePair<TKey, TValue>> PostOrderTraversal()
     {
-        if (root == null) yield break;
+        List<KeyValuePair<TKey, TValue>> list = new List<KeyValuePair<TKey, TValue>>();
+        Visit(root);
+        return list;
+
+        void Visit(TreeNode<TKey, TValue> node)
+        {
+            if (node == null)
+            {
+                return;
+            }
+            Visit(node.Left);
+            Visit(node.Right);
+            list.Add(new KeyValuePair<TKey, TValue>(node.Key, node.Value));
+        }
     }
     // 레벨 순서 순회 (LevelOrder) — 너비 우선(BFS)
     public virtual IEnumerable<KeyValuePair<TKey, TValue>> LevelOrderTraversal()
