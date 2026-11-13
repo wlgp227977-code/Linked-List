@@ -1,14 +1,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.Mathematics;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class BinarySearchTree<TKey, TValue> : IDictionary<TKey, TValue>
     where TKey : IComparable<TKey>
 {
-    protected TreeMode<TKey, TValue> root;
+    protected TreeNode<TKey, TValue> root;
     public BinarySearchTree()
     {
         root = null;
@@ -37,24 +36,31 @@ public class BinarySearchTree<TKey, TValue> : IDictionary<TKey, TValue>
 
     public ICollection<TValue> Values => throw new System.NotImplementedException();
 
-    public int Count { get; protected set; }
+    public int Count => CountNodes(root);
+
+    protected virtual int CountNodes(TreeNode<TKey, TValue> node)
+    {
+        if (node == null)
+            return 0;
+        return 1 + CountNodes(node.Left) + CountNodes(node.Right);
+    }
 
     public bool IsReadOnly => false;
 
     public virtual void Add(TKey key, TValue value)
     {
-        throw new System.NotImplementedException();
+        root = Add(root, key, value);
     }
 
     public virtual void Add(KeyValuePair<TKey, TValue> item)
     {
         Add(item.Key, item.Value);
     }
-    protected virtual TreeMode<TKey, TValue> Add(TreeMode<TKey, TValue> node, TKey key, TValue value)
+    protected virtual TreeNode<TKey, TValue> Add(TreeNode<TKey, TValue> node, TKey key, TValue value)
     {
         if (node == null)
         {
-            return new TreeMode<TKey, TValue>(key, value);
+            return new TreeNode<TKey, TValue>(key, value);
         }
 
         int compare = key.CompareTo(node.Key);
@@ -74,11 +80,11 @@ public class BinarySearchTree<TKey, TValue> : IDictionary<TKey, TValue>
         return node;
     }
 
-    protected virtual TreeMode<TKey, TValue> AddOrUpdate(TreeMode<TKey, TValue> node, TKey key, TValue value)
+    protected virtual TreeNode<TKey, TValue> AddOrUpdate(TreeNode<TKey, TValue> node, TKey key, TValue value)
     {
         if (node == null)
         {
-            return new TreeMode<TKey, TValue>(key, value);
+            return new TreeNode<TKey, TValue>(key, value);
         }
 
         int compare = key.CompareTo(node.Key);
@@ -98,18 +104,18 @@ public class BinarySearchTree<TKey, TValue> : IDictionary<TKey, TValue>
         return node;
     }
 
-    protected virtual void UpdateHeight(TreeMode<TKey, TValue> node)
+    protected virtual void UpdateHeight(TreeNode<TKey, TValue> node)
     {
         node.Height = Mathf.Max(Height(node.Left), Height(node.Right)) + 1;
     }
-    protected virtual int Height(TreeMode<TKey, TValue> node)
+    protected virtual int Height(TreeNode<TKey, TValue> node)
     {
         return node == null ? 0 : node.Height;
     }
 
     public void Clear()
     {
-        throw new System.NotImplementedException();
+        root = null;
     }
 
     public bool Contains(KeyValuePair<TKey, TValue> item)
@@ -129,25 +135,79 @@ public class BinarySearchTree<TKey, TValue> : IDictionary<TKey, TValue>
 
     public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
     {
-        throw new System.NotImplementedException();
+        return InOrderTraversal().GetEnumerator();
     }
 
     public bool Remove(TKey key)
     {
-        throw new System.NotImplementedException();
+        if (!ContainsKey(key))
+        {
+            return false;
+        }
+        root = Remove(root, key);
+        return true;
     }
 
     public bool Remove(KeyValuePair<TKey, TValue> item)
     {
-        throw new System.NotImplementedException();
+        return Remove(item.Key);
     }
+
+    protected virtual TreeNode<TKey, TValue> Remove(TreeNode<TKey, TValue> node, TKey key)
+    {
+        if (node == null)
+        {
+            return node;
+        }
+
+        int compare = key.CompareTo(node.Key);
+
+        if (compare < 0)
+        {
+            node.Left = Remove(node.Left, key);
+        }
+        else if (compare > 0)
+        {
+            node.Right = Remove(node.Right, key);
+        }
+        else
+        {
+            if (node.Left == null)
+            {
+                return node.Right;
+            }
+            if (node.Right == null)
+            {
+                return node.Left;
+            }
+
+            var minNode = FindMin(node.Right);
+            node.Key = minNode.Key;
+            node.Value = minNode.Value;
+            node.Right = Remove(node.Right, minNode.Key);
+        }
+
+
+        UpdateHeight(node);
+        return node;
+    }
+
+    protected virtual TreeNode<TKey, TValue> FindMin(TreeNode<TKey, TValue> node)
+    {
+        while (node.Left != null)
+        {
+            node = node.Left;
+        }
+        return node;
+    }
+
 
     public bool TryGetValue(TKey key, out TValue value)
     {
         return TryGetValue(root, key, out value);
     }
 
-    protected virtual bool TryGetValue(TreeMode<TKey, TValue> node, TKey key, out TValue value)
+    protected virtual bool TryGetValue(TreeNode<TKey, TValue> node, TKey key, out TValue value)
     {
         if (node == null)
         {
@@ -174,5 +234,38 @@ public class BinarySearchTree<TKey, TValue> : IDictionary<TKey, TValue>
     IEnumerator IEnumerable.GetEnumerator()
     {
         return GetEnumerator();
+    }
+
+    // 중위 순회 (InOrder) — Left → Root → Right
+    public virtual IEnumerable<KeyValuePair<TKey, TValue>> InOrderTraversal()
+    {
+        if (root == null) yield break;
+
+    }
+    // 전위 순회 (PreOrder) — Root → Left → Right
+    public virtual IEnumerable<KeyValuePair<TKey, TValue>> PreOrderTraversal()
+    {
+        if (root == null) yield break;
+    }
+    // 후위 순회 (PostOrder) — Left → Right → Root
+    public virtual IEnumerable<KeyValuePair<TKey, TValue>> PostOrderTraversal()
+    {
+        if (root == null) yield break;
+    }
+    // 레벨 순서 순회 (LevelOrder) — 너비 우선(BFS)
+    public virtual IEnumerable<KeyValuePair<TKey, TValue>> LevelOrderTraversal()
+    {
+        if (root == null) yield break;
+
+        var queue = new Queue<TreeNode<TKey, TValue>>();
+        queue.Enqueue(root);
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            yield return new KeyValuePair<TKey, TValue>(current.Key, current.Value);
+            if (current.Left != null) queue.Enqueue(current.Left);
+            if (current.Right != null) queue.Enqueue(current.Right);
+        }
     }
 }
