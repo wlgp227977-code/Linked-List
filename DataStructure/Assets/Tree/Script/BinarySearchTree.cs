@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Unity.VisualScripting;
 using UnityEditor.Experimental.GraphView;
@@ -34,9 +35,9 @@ public class BinarySearchTree<TKey, TValue> : IDictionary<TKey, TValue>
         }
     }
 
-    public ICollection<TKey> Keys => throw new System.NotImplementedException();
+    public ICollection<TKey> Keys => InOrderTraversal().Select(kvp => kvp.Key).ToList();
 
-    public ICollection<TValue> Values => throw new System.NotImplementedException();
+    public ICollection<TValue> Values => InOrderTraversal().Select(kvp => kvp.Value).ToList();
 
     public int Count => CountNodes(root);
 
@@ -132,7 +133,22 @@ public class BinarySearchTree<TKey, TValue> : IDictionary<TKey, TValue>
 
     public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
     {
-        throw new System.NotImplementedException();
+        if (array == null)
+        {
+            throw new ArgumentNullException(nameof(array));
+        }
+        if (arrayIndex < 0 || arrayIndex > array.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+        }
+        if (array.Length - arrayIndex < Count)
+        {
+            throw new ArgumentException("배열 크기 부족");
+        }
+        foreach (var kvp in this)
+        {
+            array[arrayIndex++] = kvp;
+        }
     }
 
     public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
@@ -225,11 +241,11 @@ public class BinarySearchTree<TKey, TValue> : IDictionary<TKey, TValue>
         }
         else if (compare < 0)
         {
-            return TryGetValue(node.Left.Key, out value);
+            return TryGetValue(node.Left, key, out value);
         }
         else
         {
-            return TryGetValue(node.Right.Key, out value);
+            return TryGetValue(node.Right, key, out value);
         }
     }
 
@@ -241,6 +257,8 @@ public class BinarySearchTree<TKey, TValue> : IDictionary<TKey, TValue>
     // 중위 순회 (InOrder) — Left → Root → Right
     public virtual IEnumerable<KeyValuePair<TKey, TValue>> InOrderTraversal()
     {
+        // InOrderTraversal(root);
+
         List<KeyValuePair<TKey, TValue>> list = new List<KeyValuePair<TKey, TValue>>();
         Visit(root);
         return list;
@@ -257,9 +275,26 @@ public class BinarySearchTree<TKey, TValue> : IDictionary<TKey, TValue>
         }
 
     }
+    public virtual IEnumerable<KeyValuePair<TKey, TValue>> InOrderTraversal(TreeNode<TKey, TValue> node)
+    {
+        if (node != null)
+        {
+            foreach (var kvp in InOrderTraversal(node.Left))
+            {
+                yield return kvp;
+            }
+            yield return new KeyValuePair<TKey, TValue>(node.Key, node.Value);
+            foreach (var kvp in InOrderTraversal(node.Right))
+            {
+                yield return kvp;
+            }
+        }
+    }
     // 전위 순회 (PreOrder) — Root → Left → Right
     public virtual IEnumerable<KeyValuePair<TKey, TValue>> PreOrderTraversal()
     {
+        // PreOrderTraversal(root);
+
         List<KeyValuePair<TKey, TValue>> list = new List<KeyValuePair<TKey, TValue>>();
         Visit(root);
         return list;
@@ -273,11 +308,29 @@ public class BinarySearchTree<TKey, TValue> : IDictionary<TKey, TValue>
             list.Add(new KeyValuePair<TKey, TValue>(node.Key, node.Value));
             Visit(node.Left);
             Visit(node.Right);
+        }
+    }
+    public virtual IEnumerable<KeyValuePair<TKey, TValue>> PreOrderTraversal(TreeNode<TKey, TValue> node)
+    {
+        if (node != null)
+        {
+            yield return new KeyValuePair<TKey, TValue>(node.Key, node.Value);
+            foreach (var kvp in InOrderTraversal(node.Left))
+            {
+                yield return kvp;
+            }
+
+            foreach (var kvp in InOrderTraversal(node.Right))
+            {
+                yield return kvp;
+            }
         }
     }
     // 후위 순회 (PostOrder) — Left → Right → Root
     public virtual IEnumerable<KeyValuePair<TKey, TValue>> PostOrderTraversal()
     {
+        // PostOrderTraversal(root);
+
         List<KeyValuePair<TKey, TValue>> list = new List<KeyValuePair<TKey, TValue>>();
         Visit(root);
         return list;
@@ -291,6 +344,23 @@ public class BinarySearchTree<TKey, TValue> : IDictionary<TKey, TValue>
             Visit(node.Left);
             Visit(node.Right);
             list.Add(new KeyValuePair<TKey, TValue>(node.Key, node.Value));
+        }
+    }
+    public virtual IEnumerable<KeyValuePair<TKey, TValue>> PostOrderTraversal(TreeNode<TKey, TValue> node)
+    {
+        if (node != null)
+        {
+
+            foreach (var kvp in InOrderTraversal(node.Left))
+            {
+                yield return kvp;
+            }
+
+            foreach (var kvp in InOrderTraversal(node.Right))
+            {
+                yield return kvp;
+            }
+            yield return new KeyValuePair<TKey, TValue>(node.Key, node.Value);
         }
     }
     // 레벨 순서 순회 (LevelOrder) — 너비 우선(BFS)
@@ -309,4 +379,5 @@ public class BinarySearchTree<TKey, TValue> : IDictionary<TKey, TValue>
             if (current.Right != null) queue.Enqueue(current.Right);
         }
     }
+
 }
