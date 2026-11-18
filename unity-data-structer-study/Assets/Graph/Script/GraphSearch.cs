@@ -258,6 +258,8 @@ public class GraphSearch
         return true;
     }
 
+
+
     private int Heuristic(GraphNode a, GraphNode b)
     {
         int ax = a.id % graph.cols;
