@@ -2,7 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Collections;
 using Unity.VisualScripting;
+using UnityEngine.InputSystem;
 
 // 충돌 해결 = 버킷별 LinkedList 체인
 public class ChainingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
@@ -11,7 +13,7 @@ public class ChainingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
     private const double LoadFactor = 0.75;
 
     private LinkedList<KeyValuePair<TKey, TValue>>[] buckets;
-
+    
     private int size;
     private int count;
 
@@ -58,8 +60,28 @@ public class ChainingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
             if (buckets[index] == null)
             {
                 buckets[index] = new LinkedList<KeyValuePair<TKey, TValue>>();
+                buckets[index].AddLast(new KeyValuePair<TKey, TValue>(key, value));
+                count++;
             }
-            throw new NotImplementedException("빈칸 ⑤");
+            else
+            {
+                bool isUpdated = false;
+                foreach (var kvp in buckets[index])
+                {
+                    if (kvp.Key.Equals(key))
+                    {
+                        buckets[index].Remove(kvp);
+                        buckets[index].AddLast(new KeyValuePair<TKey, TValue>(key, value));
+                        isUpdated = true;
+                        break;
+                    }
+                }
+                if (!isUpdated)
+                {
+                    buckets[index].AddLast(new KeyValuePair<TKey, TValue>(key, value));
+                    count++;
+                }
+            }
         }
     }
 
@@ -125,8 +147,7 @@ public class ChainingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
                     Add(kvp);
                 }
             }
-        }
-        throw new NotImplementedException("빈칸 ④");
+        }        
     }
 
     public void Add(TKey key, TValue value)
@@ -252,14 +273,15 @@ public class ChainingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
                     buckets[index].Remove(node);
                     node = nextNode;
                     count--;
+                    return true;
                 }
                 else
                 {
                     node = node.Next;
                 }
             }
-        }
-        throw new NotImplementedException("빈칸 ③");
+        } 
+        return false;       
     }
 
     public bool Remove(KeyValuePair<TKey, TValue> item)
@@ -302,8 +324,7 @@ public class ChainingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
                 value = chain.Value;
                 return true;
             }
-        }
-        throw new NotImplementedException("빈칸 ②");
+        }       
 
         value = default;
         return false;
@@ -318,9 +339,15 @@ public class ChainingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
                 yield return new BucketView(i, BucketState.Empty, null, null, null);
                 continue;
             }
-
             // [빈칸 ⑥] 체인의 (Key, Value)를 문자열 튜플 리스트로 모아 Occupied로 돌려준다
-            throw new NotImplementedException("빈칸 ⑥");
+            var chain = new List<(string Key, string Value)>();
+            foreach (var kvp in buckets[i])
+            {
+                chain.Add((kvp.Key.ToString(), kvp.Value.ToString()));
+                
+            }
+            yield return new BucketView(i, BucketState.Occupied, chain[0].Key, chain[0].Value, chain);           
+            
         }
     }
 
