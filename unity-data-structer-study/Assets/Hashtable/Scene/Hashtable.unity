@@ -4211,7 +4211,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HashTableView
   bucketRoot: {fileID: 469113503}
   bucketPrefab: {fileID: 1960447722323532444, guid: 4da1866b5c7bf8f4b904fedb75156f70, type: 3}
-  hashtableTypeDropdown: {fileID: 51958106}
+  hashtableTyepDropdown: {fileID: 51958106}
   probingStrategyDropdown: {fileID: 1922397345}
   keyInputFiled: {fileID: 636146174}
   valueInputFiled: {fileID: 1983121123}
