@@ -30,6 +30,9 @@ public class Tile
     public Tile[] adjacents = new Tile[4];
 
     public int autoTileId;
+    public int autoFowId;
+    public bool isVisited;
+
 
     public Tile previous;
 
@@ -41,6 +44,18 @@ public class Tile
             if (adjacents[i] != null)
             {
                 autoTileId |= 1 << i;
+            }
+        }
+    }
+    public void UpdateFowId()
+    {
+        autoFowId = 0;
+        for (int i = 0; i < adjacents.Length; ++i)
+        {
+            if (adjacents[i] == null || !adjacents[i].isVisited)
+            {
+                //TLRB
+                autoFowId |= 1 << i;
             }
         }
     }

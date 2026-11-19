@@ -12,7 +12,8 @@ public class Stage : MonoBehaviour
 
     public Sprite[] islandSprites;
     public Sprite[] fowSprites;
-
+    [Range(0, 5)]
+    public int visitRadius = 1;
     private Map map;
 
     public Map Map => map;
@@ -39,8 +40,7 @@ public class Stage : MonoBehaviour
     [Range(0f, 0.9f)]
     public float monsterPercent = 0.1f;
 
-    [Range(0, 5)]
-    public int revealRange = 1;
+
 
     private void Awake()
     {
@@ -77,6 +77,7 @@ public class Stage : MonoBehaviour
 
         CreateGrid();
         CreatePlayer();
+
     }
 
     public Vector3 firstTilePos;
@@ -86,31 +87,73 @@ public class Stage : MonoBehaviour
 
     public void OnTileVisited(int tileId)
     {
-        int row = tileId / mapWidth;
-        int col = tileId % mapHeight;
+        int centerX = tileId % mapWidth;
+        int centerY = tileId / mapWidth;
 
-        for (int r = row - revealRange; r <= row + revealRange; r++)
+        int radius = visitRadius;
+
+        for (int i = -radius; i <= radius; i++)
         {
-            for (int c = col - revealRange; c <= col + revealRange; c++)
+            for (int j = -radius; j <= radius; j++)
             {
-                if (r < 0 || r >= mapHeight || c < 0 || c >= mapWidth)
+                int x = centerX + j;
+                int y = centerY + i;
+                if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight)
                 {
                     continue;
                 }
-                Reveal(map.tiles[r * mapWidth + c]);
+                int id = y * mapWidth + x;
+                map.tiles[id].isVisited = true;
+                DecorateTile(id);
             }
         }
+
+        radius += 1;
+
+        for (int i = -radius; i <= radius; i++)
+        {
+            for (int j = -radius; j <= radius; j++)
+            {
+                if (i == radius || i == -radius || j == radius || j == -radius)
+                {
+                    int x = centerX + j;
+                    int y = centerY + i;
+                    if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight)
+                    {
+                        continue;
+                    }
+                    int id = y * mapWidth + x;
+                    map.tiles[id].UpdateFowId();
+                    DecorateTile(id);
+                }
+
+            }
+        }
+        // int row = tileId / mapWidth;
+        // int col = tileId % mapHeight;
+
+        // for (int r = row - visitRadius; r <= row + visitRadius; r++)
+        // {
+        //     for (int c = col - visitRadius; c <= col + visitRadius; c++)
+        //     {
+        //         if (r < 0 || r >= mapHeight || c < 0 || c >= mapWidth)
+        //         {
+        //             continue;
+        //         }
+        //         Reveal(map.tiles[r * mapWidth + c]);
+        //     }
+        // }
     }
 
-    private void Reveal(Tile tile)
-    {
-        if (tile.isRevealed)
-        {
-            return;
-        }
-        tile.isRevealed = true;
-        DecorateTile(tile.id);
-    }
+    // private void Reveal(Tile tile)
+    // {
+    //     if (tile.isRevealed)
+    //     {
+    //         return;
+    //     }
+    //     tile.isRevealed = true;
+    //     DecorateTile(tile.id);
+    // }
 
     private void CreatePlayer()
     {
@@ -150,6 +193,7 @@ public class Stage : MonoBehaviour
                 newGo.name = $"Tile {tileId} ({i}, {j})";
                 tileObjs[tileId] = newGo;
 
+                // tile.UpdateFowId();
                 DecorateTile(tileId);
             }
             pos.x = startX;
@@ -162,22 +206,25 @@ public class Stage : MonoBehaviour
         var tile = map.tiles[tileId];
         var tileGo = tileObjs[tileId];
         var ren = tileGo.GetComponent<SpriteRenderer>();
-        if (tile.autoTileId != (int)TileTypes.Empty)
+
+        if (tile.isVisited)
         {
-            if (tile.isRevealed)
+            if (tile.autoTileId != (int)TileTypes.Empty)
             {
                 ren.sprite = islandSprites[tile.autoTileId];
             }
             else
             {
-                ren.sprite = fowSprites[15];
+                ren.sprite = null;
             }
-
         }
         else
         {
-            ren.sprite = null;
+            ren.sprite = fowSprites[tile.autoFowId];
         }
+
+
+
     }
 
     public int ScreenPosTileId(Vector3 screenPos, bool clamp = true)
