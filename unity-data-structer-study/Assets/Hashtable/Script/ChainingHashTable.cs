@@ -2,9 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.Collections;
-using Unity.VisualScripting;
-using UnityEngine.InputSystem;
 
 // 충돌 해결 = 버킷별 LinkedList 체인
 public class ChainingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
@@ -13,7 +10,7 @@ public class ChainingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
     private const double LoadFactor = 0.75;
 
     private LinkedList<KeyValuePair<TKey, TValue>>[] buckets;
-    
+
     private int size;
     private int count;
 
@@ -22,6 +19,9 @@ public class ChainingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
         buckets = new LinkedList<KeyValuePair<TKey, TValue>>[DefaultCapacity];
         size = DefaultCapacity;
         count = 0;
+
+        keyComparer = EqualityComparer<TKey>.Default;
+        valueComparer = EqualityComparer<TValue>.Default;
     }
 
     private int GetHash(TKey key)
@@ -60,28 +60,21 @@ public class ChainingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
             if (buckets[index] == null)
             {
                 buckets[index] = new LinkedList<KeyValuePair<TKey, TValue>>();
-                buckets[index].AddLast(new KeyValuePair<TKey, TValue>(key, value));
-                count++;
+
             }
-            else
+            var node = buckets[index].First;
+            while (node != null)
             {
-                bool isUpdated = false;
-                foreach (var kvp in buckets[index])
+                if (keyComparer.Equals(node.Value.Key, key))
                 {
-                    if (kvp.Key.Equals(key))
-                    {
-                        buckets[index].Remove(kvp);
-                        buckets[index].AddLast(new KeyValuePair<TKey, TValue>(key, value));
-                        isUpdated = true;
-                        break;
-                    }
-                }
-                if (!isUpdated)
-                {
+                    buckets[index].Remove(node);
                     buckets[index].AddLast(new KeyValuePair<TKey, TValue>(key, value));
-                    count++;
+                    return;
                 }
+                node = node.Next;
             }
+            buckets[index].AddLast(new KeyValuePair<TKey, TValue>(key, value));
+            count++;
         }
     }
 
@@ -137,17 +130,28 @@ public class ChainingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
         size *= 2;
         buckets = new LinkedList<KeyValuePair<TKey, TValue>>[size];
         // [빈칸 ④] count를 0으로 돌리고, 옛 버킷의 모든 항목을 Add로 다시 넣는다
-        count = 0;
-        foreach (var bucket in oldBuckets)
+
+        for (int i = 0; i < oldSize; i++)
         {
-            if (bucket != null)
+            if (oldBuckets[i] != null)
             {
-                foreach (var kvp in bucket)
+                foreach (var kvp in oldBuckets[i])
                 {
                     Add(kvp);
                 }
             }
-        }        
+        }
+        // count = 0;
+        // foreach (var bucket in oldBuckets)
+        // {
+        //     if (bucket != null)
+        //     {
+        //         foreach (var kvp in bucket)
+        //         {
+        //             Add(kvp);
+        //         }
+        //     }
+        // }
     }
 
     public void Add(TKey key, TValue value)
@@ -168,14 +172,9 @@ public class ChainingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
         if (buckets[index] == null)
         {
             buckets[index] = new LinkedList<KeyValuePair<TKey, TValue>>();
-            buckets[index].AddLast(new KeyValuePair<TKey, TValue>(key, value));
-            count++;
         }
-        else
-        {
-            buckets[index].AddLast(new KeyValuePair<TKey, TValue>(key, value));
-            count++;
-        }
+        buckets[index].AddLast(new KeyValuePair<TKey, TValue>(key, value));
+        count++;
     }
 
     public void Add(KeyValuePair<TKey, TValue> item)
@@ -262,69 +261,73 @@ public class ChainingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
         int index = GetHash(key);
         // [빈칸 ③] 체인을 LinkedListNode로 따라가며 같은 키의 노드를 지운다
         // buckets[index].First부터 node.Next로 따라가며 찾은 노드를 Remove(node)로 지운다
-        if (buckets[index] != null)
+        if (buckets[index] == null)
         {
-            var node = buckets[index].First;
-            while (node != null)
+            return false;
+        }
+        var node = buckets[index].First;
+        while (node != null)
+        {
+            if (keyComparer.Equals(node.Value.Key, key))
             {
-                if (node.Value.Key.Equals(key))
-                {
-                    var nextNode = node.Next;
-                    buckets[index].Remove(node);
-                    node = nextNode;
-                    count--;
-                    return true;
-                }
-                else
-                {
-                    node = node.Next;
-                }
+                buckets[index].Remove(node);
+                count--;
+                return true;
             }
-        } 
-        return false;       
+            node = node.Next;
+        }
+        return false;
     }
 
     public bool Remove(KeyValuePair<TKey, TValue> item)
     {
         // [빈칸 ③] Remove(key)와 같되 값까지 같아야 지운다
+        if (item.Key == null)
+            throw new ArgumentNullException(nameof(item.Key));
+
         int index = GetHash(item.Key);
-        if (buckets[index] != null)
+        // [빈칸 ③] 체인을 LinkedListNode로 따라가며 같은 키의 노드를 지운다
+        // buckets[index].First부터 node.Next로 따라가며 찾은 노드를 Remove(node)로 지운다
+        if (buckets[index] == null)
         {
-            var node = buckets[index].First;
-            while (node != null)
+            return false;
+        }
+        var node = buckets[index].First;
+        while (node != null)
+        {
+            if (keyComparer.Equals(node.Value.Key, item.Key) &&
+                valueComparer.Equals(node.Value.Value, item.Value))
             {
-                if (node.Value.Key.Equals(item.Key) && node.Value.Value.Equals(item.Value))
-                {
-                    var nextNode = node.Next;
-                    buckets[index].Remove(node);
-                    node = nextNode;
-                    count--;
-                    return true;
-                }
-                else
-                {
-                    node = node.Next;
-                }
+                buckets[index].Remove(node);
+                count--;
+                return true;
             }
+            node = node.Next;
         }
         return false;
     }
-
+    private EqualityComparer<TKey> keyComparer;
+    private EqualityComparer<TValue> valueComparer;
     public bool TryGetValue(TKey key, out TValue value)
     {
+
         if (key == null)
             throw new ArgumentNullException(nameof(key));
 
         int index = GetHash(key);
         // [빈칸 ②] 버킷의 체인을 순회해 같은 키를 찾으면 value에 담고 true
-        foreach (var chain in buckets[index])
+        if (buckets[index] == null)
         {
-            if (chain.Key.Equals(key))
+            foreach (var chain in buckets[index])
             {
-                value = chain.Value;
-                return true;
+                if (keyComparer.Equals(chain.Key, key))
+                {
+                    value = chain.Value;
+                    return true;
+                }
             }
-        }       
+        }
+
 
         value = default;
         return false;
@@ -343,11 +346,12 @@ public class ChainingHashTable<TKey, TValue> : IDictionary<TKey, TValue>
             var chain = new List<(string Key, string Value)>();
             foreach (var kvp in buckets[i])
             {
-                chain.Add((kvp.Key.ToString(), kvp.Value.ToString()));
-                
+                //chain.Add((kvp.Key.ToString(), kvp.Value.ToString()));
+                chain.Add((Convert.ToString(kvp.Key), Convert.ToString(kvp.Value)));
+
             }
-            yield return new BucketView(i, BucketState.Occupied, chain[0].Key, chain[0].Value, chain);           
-            
+            yield return new BucketView(i, BucketState.Occupied, null, null, chain);
+
         }
     }
 
